@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # 前端服务
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-analyzer-web
+    ports:
+      - '5173:5173'
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://localhost:3001/api
+    networks:
+      - stock-network
+
+  # 后端服务
+  server:
+    build:
+      context: ./services/server
+      dockerfile: Dockerfile
+    container_name: stock-analyzer-server
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongo:27017/stock-analyzer
+      - CLIENT_URL=http://localhost:5173
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - stock-network
+
+  # MongoDB 数据库
+  mongo:
+    image: mongo:6-jammy
+    container_name: stock-analyzer-mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - stock-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: stock-analyzer-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - stock-network
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  stock-network:
+    driver: bridge
