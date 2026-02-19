@@ -20,9 +20,9 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server, path: '/ws' });
 
-// Express 中间件
+// Express 中间件 - 允许所有来源（生产环境建议配置具体域名）
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: true,
   credentials: true,
 }));
 app.use(express.json());
@@ -103,9 +103,22 @@ const startServer = async () => {
     await generateMockStockData();
 
     const PORT = process.env.PORT || 3001;
+    const os = require('os');
+    const getLocalIp = () => {
+      const interfaces = os.networkInterfaces();
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            return iface.address;
+          }
+        }
+      }
+      return '0.0.0.0';
+    };
+    const localIp = getLocalIp();
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
-      console.log(`WebSocket is available at ws://localhost:${PORT}/ws`);
+      console.log(`WebSocket is available at ws://${localIp}:${PORT}/ws`);
     });
 
     // 定时更新股票价格（每3秒）
