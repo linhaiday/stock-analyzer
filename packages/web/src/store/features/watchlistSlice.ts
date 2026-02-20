@@ -1,11 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface WatchlistItem {
+export interface WatchlistItem {
+  _id?: string;
   symbol: string;
   name: string;
   price?: number;
   change?: number;
   changePercent?: number;
+  groupId?: string;
   addedAt: string;
 }
 
@@ -55,6 +57,10 @@ const watchlistSlice = createSlice({
         group.items.push(action.payload.symbol);
       }
     },
+    clearWatchlist: (state) => {
+      state.items = [];
+      state.groups.forEach(g => g.items = []);
+    },
   },
 });
 
@@ -62,8 +68,9 @@ export const {
   addToWatchlist, 
   removeFromWatchlist, 
   updateWatchlistItem, 
-  setGroups,
-  addToGroup
+  setGroups, 
+  addToGroup,
+  clearWatchlist 
 } = watchlistSlice.actions;
 
 export default watchlistSlice.reducer;

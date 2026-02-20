@@ -68,14 +68,16 @@ export const alertApi = {
     return apiClient.get('/alerts');
   },
   // 创建预警
-  createAlert: (data: {
-    symbol: string;
-    type: 'price' | 'percent' | 'volume';
-    operator: 'above' | 'below';
-    threshold: number;
-    active?: boolean;
-  }) => {
+  createAlert: (data: { symbol: string; name: string; type: 'price' | 'percent' | 'volume'; condition: 'above' | 'below'; targetValue: number; }) => {
     return apiClient.post('/alerts', data);
+  },
+  // 删除预警
+  deleteAlert: (id: string) => {
+    return apiClient.delete(`/alerts/${id}`);
+  },
+  // 切换预警状态
+  toggleAlert: (id: string) => {
+    return apiClient.post(`/alerts/${id}/toggle`);
   },
 };
 

@@ -1,4 +1,7 @@
 import Stock from '../models/Stock';
+import Watchlist from '../models/Watchlist';
+import News from '../models/News';
+import Alert from '../models/Alert';
 
 export async function generateMockStockData() {
   const stocks = [
@@ -15,13 +18,12 @@ export async function generateMockStockData() {
   ];
 
   const now = new Date();
-  
   for (const stock of stocks) {
     const changePercent = (Math.random() - 0.5) * 5;
     const price = stock.basePrice * (1 + changePercent / 100);
     const prevClose = stock.basePrice;
     const change = price - prevClose;
-    
+
     await Stock.findOneAndUpdate(
       { symbol: stock.symbol },
       {
@@ -48,18 +50,140 @@ export async function generateMockStockData() {
 
 export async function updateStockPrices() {
   const stocks = await Stock.find({});
-  
   for (const stock of stocks) {
     const fluctuation = (Math.random() - 0.5) * 0.005;
     const newPrice = stock.price * (1 + fluctuation);
     const change = newPrice - stock.prevClose;
     const changePercent = (change / stock.prevClose) * 100;
-    
     stock.price = parseFloat(newPrice.toFixed(2));
     stock.change = parseFloat(change.toFixed(2));
     stock.changePercent = parseFloat(changePercent.toFixed(2));
     stock.updatedAt = new Date();
-    
     await stock.save();
+  }
+}
+
+// 生成模拟自选股数据
+export async function generateMockWatchlistData() {
+  const count = await Watchlist.countDocuments();
+  if (count > 0) return;
+
+  const mockWatchlist = [
+    { symbol: '000001', name: '平安银行', groupId: 'default' },
+    { symbol: '000002', name: '万科A', groupId: 'default' },
+    { symbol: '600036', name: '招商银行', groupId: 'default' },
+    { symbol: '601318', name: '中国平安', groupId: 'tech' },
+    { symbol: '600519', name: '贵州茅台', groupId: 'consumption' },
+  ];
+
+  for (const item of mockWatchlist) {
+    await Watchlist.findOneAndUpdate(
+      { symbol: item.symbol },
+      { userId: 'guest', ...item, addedAt: new Date() },
+      { upsert: true }
+    );
+  }
+}
+
+// 生成模拟新闻数据
+export async function generateMockNewsData() {
+  const count = await News.countDocuments();
+  if (count > 0) return;
+
+  const mockNews = [
+    {
+      title: '央行降准释放流动性，股市有望迎来上涨',
+      summary: '央行宣布下调存款准备金率0.25个百分点，释放长期资金约5000亿元，利好金融板块',
+      content: '详细报道内容...',
+      source: '财经日报',
+      category: '政策',
+      importance: 'high',
+      viewCount: 1250,
+      publishTime: new Date(),
+      relatedSymbols: ['000001', '600036'],
+    },
+    {
+      title: '新能源汽车销量持续增长，相关股票受关注',
+      summary: '新能源汽车销量同比增长35%，产业链相关企业业绩向好',
+      content: '详细报道内容...',
+      source: '证券时报',
+      category: '行业',
+      importance: 'medium',
+      viewCount: 850,
+      publishTime: new Date(Date.now() - 3600000),
+      relatedSymbols: ['TSLA', 'AAPL'],
+    },
+    {
+      title: '平安银行发布年报，净利润稳步增长',
+      summary: '平安银行2023年度财报显示，净利润同比增长12.3%',
+      content: '详细报道内容...',
+      source: '公司公告',
+      category: '个股',
+      importance: 'high',
+      viewCount: 5600,
+      publishTime: new Date(Date.now() - 7200000),
+      relatedSymbols: ['000001'],
+    },
+    {
+      title: '大盘震荡调整，投资者关注持股策略',
+      summary: '今日A股市场震荡调整，个股分化明显',
+      content: '详细报道内容...',
+      source: '新浪财经',
+      category: '大盘',
+      importance: 'medium',
+      viewCount: 320,
+      publishTime: new Date(Date.now() - 10800000),
+      relatedSymbols: ['00700', '09988'],
+    },
+  ];
+
+  for (const news of mockNews) {
+    await News.create(news);
+  }
+}
+
+// 生成模拟预警数据
+export async function generateMockAlertsData() {
+  const count = await Alert.countDocuments();
+  if (count > 0) return;
+
+  const mockAlerts = [
+    {
+      userId: 'guest',
+      symbol: '000001',
+      name: '平安银行',
+      type: 'price',
+      condition: 'above',
+      targetValue: 15,
+      isActive: true,
+      isTriggered: false,
+      notifyMethod: 'app',
+    },
+    {
+      userId: 'guest',
+      symbol: '000002',
+      name: '万科A',
+      type: 'percent',
+      condition: 'below',
+      targetValue: -5,
+      isActive: true,
+      isTriggered: false,
+      notifyMethod: 'app',
+    },
+    {
+      userId: 'guest',
+      symbol: '600036',
+      name: '招商银行',
+      type: 'price',
+      condition: 'above',
+      targetValue: 40,
+      isActive: false,
+      isTriggered: false,
+      notifyMethod: 'app',
+    },
+  ];
+
+  for (const alert of mockAlerts) {
+    await Alert.create(alert);
   }
 }

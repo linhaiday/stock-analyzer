@@ -11,7 +11,7 @@ import stockRoutes from './routes/stockRoutes';
 import watchlistRoutes from './routes/watchlistRoutes';
 import alertRoutes from './routes/alertRoutes';
 import newsRoutes from './routes/newsRoutes';
-import { updateStockPrices, generateMockStockData } from './services/stockService';
+import { updateStockPrices, generateMockStockData, generateMockWatchlistData, generateMockNewsData, generateMockAlertsData } from './services/stockService';
 import { checkAlerts } from './routes/alertRoutes';
 
 dotenv.config();
@@ -101,6 +101,9 @@ const startServer = async () => {
 
     // 生成初始模拟数据
     await generateMockStockData();
+    await generateMockWatchlistData();
+    await generateMockNewsData();
+    await generateMockAlertsData();
 
     const PORT = process.env.PORT || 3001;
     const os = require('os');

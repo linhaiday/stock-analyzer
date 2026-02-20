@@ -6,14 +6,15 @@ import { alertApi } from '../api';
 const { Option } = Select;
 
 interface Alert {
-  id: string;
+  _id: string;
   symbol: string;
   name?: string;
   type: 'price' | 'percent' | 'volume';
-  operator: 'above' | 'below';
-  threshold: number;
-  active: boolean;
-  createdAt?: string;
+  condition: 'above' | 'below';
+  targetValue: number;
+  isActive: boolean;
+  createTime?: string;
+  currentPrice?: number;
 }
 
 const PriceAlerts: React.FC = () => {
@@ -30,39 +31,11 @@ const PriceAlerts: React.FC = () => {
     setLoading(true);
     try {
       const response = await alertApi.getAlerts();
-      setAlerts(response.data || []);
+      // API 返回结构: { success: true, data: [...], pagination: {...} }
+      const alertData = response.data?.data || [];
+      setAlerts(alertData);
     } catch (error: any) {
       message.error('获取预警列表失败');
-      // 使用模拟数据
-      setAlerts([
-        {
-          id: '1',
-          symbol: '000001',
-          name: '平安银行',
-          type: 'price',
-          operator: 'above',
-          threshold: 15,
-          active: true,
-        },
-        {
-          id: '2',
-          symbol: '000002',
-          name: '万科A',
-          type: 'percent',
-          operator: 'below',
-          threshold: -5,
-          active: true,
-        },
-        {
-          id: '3',
-          symbol: '600036',
-          name: '招商银行',
-          type: 'volume',
-          operator: 'above',
-          threshold: 1000000,
-          active: false,
-        },
-      ]);
     } finally {
       setLoading(false);
     }
@@ -80,21 +53,29 @@ const PriceAlerts: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     Modal.confirm({
       title: '确认删除',
       content: '确定要删除这个预警吗？',
-      onOk: () => {
-        setAlerts(prev => prev.filter(a => a.id !== id));
-        message.success('删除成功');
+      onOk: async () => {
+        try {
+          await alertApi.deleteAlert(id);
+          message.success('删除成功');
+          fetchAlerts();
+        } catch (error) {
+          message.error('删除失败');
+        }
       },
     });
   };
 
-  const toggleActive = (id: string) => {
-    setAlerts(prev =>
-      prev.map(a => (a.id === id ? { ...a, active: !a.active } : a))
-    );
+  const toggleActive = async (id: string) => {
+    try {
+      await alertApi.toggleAlert(id);
+      fetchAlerts();
+    } catch (error) {
+      message.error('切换状态失败');
+    }
   };
 
   const columns = [
@@ -127,20 +108,27 @@ const PriceAlerts: React.FC = () => {
       key: 'condition',
       render: (record: Alert) => (
         <span>
-          {record.operator === 'above' ? '高于' : '低于'} {record.threshold}
+          {record.condition === 'above' ? '高于' : '低于'} {record.targetValue}
           {record.type === 'price' ? ' 元' : record.type === 'percent' ? ' %' : ' 手'}
         </span>
       ),
     },
     {
+      title: '当前价',
+      dataIndex: 'currentPrice',
+      key: 'currentPrice',
+      width: 100,
+      render: (v: number) => (v ? v.toFixed(2) : '--'),
+    },
+    {
       title: '状态',
-      dataIndex: 'active',
-      key: 'active',
+      dataIndex: 'isActive',
+      key: 'isActive',
       width: 100,
       render: (v: boolean, record: Alert) => (
         <Switch
           checked={v}
-          onChange={() => toggleActive(record.id)}
+          onChange={() => toggleActive(record._id)}
           checkedChildren="启用"
           unCheckedChildren="暂停"
         />
@@ -155,7 +143,7 @@ const PriceAlerts: React.FC = () => {
           type="link"
           danger
           icon={<DeleteOutlined />}
-          onClick={() => handleDelete(record.id)}
+          onClick={() => handleDelete(record._id)}
         >
           删除
         </Button>
@@ -178,7 +166,7 @@ const PriceAlerts: React.FC = () => {
         columns={columns}
         dataSource={alerts}
         loading={loading}
-        rowKey="id"
+        rowKey="_id"
         size="small"
       />
       <Modal
@@ -204,6 +192,13 @@ const PriceAlerts: React.FC = () => {
             <Input placeholder="如: 000001" />
           </Form.Item>
           <Form.Item
+            name="name"
+            label="股票名称"
+            rules={[{ required: true, message: '请输入股票名称' }]}
+          >
+            <Input placeholder="如: 平安银行" />
+          </Form.Item>
+          <Form.Item
             name="type"
             label="预警类型"
             rules={[{ required: true }]}
@@ -216,7 +211,7 @@ const PriceAlerts: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item
-            name="operator"
+            name="condition"
             label="操作符"
             rules={[{ required: true }]}
             initialValue="above"
@@ -227,7 +222,7 @@ const PriceAlerts: React.FC = () => {
             </Select>
           </Form.Item>
           <Form.Item
-            name="threshold"
+            name="targetValue"
             label="阈值"
             rules={[{ required: true, message: '请输入阈值' }]}
           >
